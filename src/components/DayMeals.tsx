@@ -1,7 +1,7 @@
 import React from 'react';
 import type { MealEntry, Targets } from '../types';
 
-const OPTIONS = ['ארוחת בוקר','צהריים','ביניים','ביניים 2','ערב'];
+const OPTIONS = ['', 'ארוחת בוקר','צהריים','ביניים','ביניים 2','ערב']; // '' = בחר
 
 export default function DayMeals({
   dateISO, meals, totals, targets, onChangeDate, onAdd, onDelete
@@ -14,14 +14,26 @@ export default function DayMeals({
   onAdd:(m:MealEntry)=>void;
   onDelete:(id:string)=>void;
 }){
-  const [slot,setSlot] = React.useState<string>('ארוחת בוקר');
+  const [title,setTitle] = React.useState('');    // שם הארוחה
+  const [slot,setSlot] = React.useState<string>(''); // סוג הארוחה (ריק כברירת־מחדל)
   const [cal,setCal] = React.useState('');
   const [pro,setPro] = React.useState('');
 
   const add=()=>{
-    const c=Number(cal)||0, p=Number(pro)||0; if(!slot && c===0 && p===0) return;
-    onAdd({ id: crypto.randomUUID?.()||Math.random().toString(36).slice(2), dateISO, name: slot, calories:Math.max(0,c), protein:Math.max(0,p) });
-    setCal(''); setPro('');
+    const c=Number(cal)||0, p=Number(pro)||0;
+    if(!slot && !title && c===0 && p===0) return;
+    onAdd({
+      id: crypto.randomUUID?.()||Math.random().toString(36).slice(2),
+      dateISO,
+      name: title ? `${slot ? slot+' – ' : ''}${title}` : (slot || 'ללא שם'),
+      calories:Math.max(0,c),
+      protein:Math.max(0,p)
+    });
+    // אפס הכל — שלא יישמר הערך האחרון
+    setTitle('');
+    setSlot('');
+    setCal('');
+    setPro('');
   };
 
   const move = (days:number)=>{
@@ -33,24 +45,25 @@ export default function DayMeals({
   return (
     <div style={{display:'grid',gap:10}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <button className="btn" onClick={()=>move(-1)} aria-label="יום קודם">←</button>
-        <div style={{fontWeight:800}}>ארוחות ל-{dateISO}</div>
+        {/* שמאל = יום הבא, ימין = יום קודם (כפי שביקשת) */}
         <button className="btn" onClick={()=>move(1)} aria-label="יום הבא">→</button>
+        <div style={{fontWeight:800}}>ארוחות ל-{dateISO}</div>
+        <button className="btn" onClick={()=>move(-1)} aria-label="יום קודם">←</button>
       </div>
 
-      <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
-        <div>סה״כ קלוריות {totals.calories} מתוך יעד {targets.calories}</div>
-        <div>סה״כ חלבון {totals.protein} מתוך יעד {targets.protein}</div>
-      </div>
+      {/* הסרתי כאן את שורת הסה״כ; הנתונים כבר מופיעים ב-TargetEditor */}
 
       <div className="grid2">
+        <input className="input" placeholder="שם הארוחה (למשל: חביתה וסלט)" value={title} onChange={e=>setTitle(e.target.value)} />
         <select className="input" value={slot} onChange={e=>setSlot(e.target.value)}>
-          {OPTIONS.map(o=> <option key={o} value={o}>{o}</option>)}
+          {OPTIONS.map(o=> <option key={o || 'placeholder'} value={o}>{o || 'בחר סוג ארוחה'}</option>)}
         </select>
-        <input className="input" placeholder="קלוריות" inputMode="numeric" value={cal} onChange={e=>setCal(e.target.value)} />
       </div>
       <div className="grid2">
+        <input className="input" placeholder="קלוריות" inputMode="numeric" value={cal} onChange={e=>setCal(e.target.value)} />
         <input className="input" placeholder="חלבון (גרם)" inputMode="numeric" value={pro} onChange={e=>setPro(e.target.value)} />
+      </div>
+      <div style={{display:'flex',justifyContent:'flex-end'}}>
         <button className="btn" onClick={add}>הוסף ארוחה</button>
       </div>
 
