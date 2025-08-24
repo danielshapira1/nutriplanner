@@ -20,3 +20,6 @@ body{ margin:0; background:var(--bg); color:var(--text); font-family:system-ui, 
 .grid7{ display:grid; grid-template-columns:76px repeat(7, 1fr); gap:6px; }
 .sheet-dim{ position:fixed; inset:0; background:rgba(0,0,0,.2); z-index:900; }
 .sheet{ position:fixed; top:56px; bottom:64px; right:0; width:80vw; max-width:420px; background:#fff; border-top-left-radius:16px; border-bottom-left-radius:16px; padding:12px; box-shadow:0 8px 24px rgba(0,0,0,.2); overflow:auto; z-index:901; }
+.popover-dim{ position:fixed; inset:0; background:rgba(0,0,0,.25); z-index:1200 }
+.popover{ position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#fff; width:min(92vw,600px); border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.2); padding:12px; z-index:1201 }
+.grid7{ display:grid; grid-template-columns:76px repeat(7, 1fr); gap:6px; }
