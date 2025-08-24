@@ -1,0 +1,2 @@
+export const toDateISO = (d: Date) => new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+export const sundayOfWeek = (date: Date) => { const d=new Date(date); const day=d.getDay(); d.setDate(d.getDate()-day); d.setHours(0,0,0,0); return d; };

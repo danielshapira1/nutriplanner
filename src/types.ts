@@ -1,0 +1,9 @@
+export type DayKey = 'sun'|'mon'|'tue'|'wed'|'thu'|'fri'|'sat';
+export type MealType = 'breakfast'|'lunch'|'snack1'|'snack2'|'dinner';
+export type Targets = { calories:number; protein:number };
+export type MealEntry = { id:string; dateISO:string; name:string; calories:number; protein:number };
+export type WeeklyPlan = { weekStartISO:string; days: Record<DayKey, Partial<Record<MealType,string>>> };
+export type ShoppingItem = { id:string; text:string; done:boolean };
+export type WeightEntry = { id:string; dateISO:string; weightKg:number };
+export type PersistShape = { targetsByDate:Record<string,Targets>; meals:MealEntry[]; plans:WeeklyPlan[]; shopping:ShoppingItem[]; weights:WeightEntry[] };
+export type TabKey = 'home'|'calendar'|'weight';

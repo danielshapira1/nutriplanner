@@ -1,0 +1,22 @@
+:root{
+--bg:#F7F7FF; --card:#fff; --text:#1f2937; --muted:#6b7280;
+--accent:#A7C7E7; --accent2:#FFD1DC; --accent3:#C8F7C5; --danger:#F5A3B3;
+}
+html,body,#root { height: 100%; }
+body{ margin:0; background:var(--bg); color:var(--text); font-family:system-ui, Arial; }
+.header{ position:fixed; top:0; left:0; right:0; height:56px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; background:var(--accent); box-shadow:0 2px 8px rgba(0,0,0,.08); z-index:1000; }
+.header-title{ font-size:22px; font-weight:800; }
+.content{ padding:16px; padding-top:72px; padding-bottom:80px; display:grid; gap:16px; }
+.card{ background:var(--card); border-radius:16px; padding:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+.input{ width:100%; box-sizing:border-box; border:1px solid #e5e7eb; border-radius:10px; padding:10px 12px; background:#fff; }
+.btn{ background:var(--accent2); color:var(--text); border:0; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
+.btn-danger{ background:var(--danger); color:var(--text); border:0; border-radius:10px; padding:8px 12px; font-weight:700; cursor:pointer; }
+.muted{ color:var(--muted); }
+.bottom{ position:fixed; bottom:0; left:0; right:0; height:64px; background:var(--accent); display:grid; align-items:center; box-shadow:0 -2px 8px rgba(0,0,0,.08); z-index:1000; padding:6px 10px; }
+.bottom-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; width:100%; }
+.navbtn{ background:var(--card); border:1px solid #e5e7eb; border-radius:16px; padding:6px 10px; cursor:pointer; display:grid; place-items:center; gap:2px; font-weight:700; }
+.navbtn-primary{ background:var(--accent2); border:1px solid #f3c3cc; transform: translateY(-6px); }
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.grid7{ display:grid; grid-template-columns:76px repeat(7, 1fr); gap:6px; }
+.sheet-dim{ position:fixed; inset:0; background:rgba(0,0,0,.2); z-index:900; }
+.sheet{ position:fixed; top:56px; bottom:64px; right:0; width:80vw; max-width:420px; background:#fff; border-top-left-radius:16px; border-bottom-left-radius:16px; padding:12px; box-shadow:0 8px 24px rgba(0,0,0,.2); overflow:auto; z-index:901; }
