@@ -11,14 +11,8 @@ const slots: { key:MealType; label:string }[] = [
   { key:'dinner', label:'ערב' },
 ];
 
-export type PlannerMode = 'view' | 'edit';
-
-export default function PlannerGrid({
-  plan, mode, onChange, onCellClick
-}:{
+export default function PlannerGrid({ plan, onCellClick }:{
   plan:WeeklyPlan;
-  mode:PlannerMode;
-  onChange:(d:DayKey, slot:MealType, text:string)=>void;
   onCellClick?:(d:DayKey, slot:MealType, text:string)=>void;
 }){
   return (
@@ -32,17 +26,6 @@ export default function PlannerGrid({
           <div style={{display:'flex',alignItems:'center',fontWeight:600}}>{slot.label}</div>
           {dayKeys.map(d=>{
             const value = plan.days[d]?.[slot.key] ?? '';
-            if (mode === 'edit') {
-              return (
-                <input
-                  key={d+slot.key}
-                  className="input"
-                  value={value}
-                  placeholder="רשום..."
-                  onChange={e=>onChange(d, slot.key, e.target.value)}
-                />
-              );
-            }
             return (
               <button
                 key={d+slot.key}

@@ -1,6 +1,8 @@
 import React from 'react';
 import type { MealEntry, Targets } from '../types';
 
+const OPTIONS = ['ארוחת בוקר','צהריים','ביניים','ביניים 2','ערב'];
+
 export default function DayMeals({
   dateISO, meals, totals, targets, onChangeDate, onAdd, onDelete
 }:{
@@ -12,14 +14,14 @@ export default function DayMeals({
   onAdd:(m:MealEntry)=>void;
   onDelete:(id:string)=>void;
 }){
-  const [name,setName] = React.useState('');
+  const [slot,setSlot] = React.useState<string>('ארוחת בוקר');
   const [cal,setCal] = React.useState('');
   const [pro,setPro] = React.useState('');
 
   const add=()=>{
-    const c=Number(cal)||0, p=Number(pro)||0; if(!name && c===0 && p===0) return;
-    onAdd({ id: crypto.randomUUID?.()||Math.random().toString(36).slice(2), dateISO, name: name||'ללא שם', calories:Math.max(0,c), protein:Math.max(0,p) });
-    setName(''); setCal(''); setPro('');
+    const c=Number(cal)||0, p=Number(pro)||0; if(!slot && c===0 && p===0) return;
+    onAdd({ id: crypto.randomUUID?.()||Math.random().toString(36).slice(2), dateISO, name: slot, calories:Math.max(0,c), protein:Math.max(0,p) });
+    setCal(''); setPro('');
   };
 
   const move = (days:number)=>{
@@ -31,22 +33,26 @@ export default function DayMeals({
   return (
     <div style={{display:'grid',gap:10}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <button className="btn" onClick={()=>move(-1)}>← יום קודם</button>
+        <button className="btn" onClick={()=>move(-1)} aria-label="יום קודם">←</button>
         <div style={{fontWeight:800}}>ארוחות ל-{dateISO}</div>
-        <button className="btn" onClick={()=>move(1)}>יום הבא →</button>
+        <button className="btn" onClick={()=>move(1)} aria-label="יום הבא">→</button>
       </div>
 
-      <div style={{display:'flex',justifyContent:'space-between'}}>
-        <div>סה"כ קלוריות: {totals.calories} / יעד {targets.calories}</div>
-        <div>סה"כ חלבון: {totals.protein} / יעד {targets.protein}</div>
+      <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+        <div>סה״כ קלוריות {totals.calories} מתוך יעד {targets.calories}</div>
+        <div>סה״כ חלבון {totals.protein} מתוך יעד {targets.protein}</div>
       </div>
 
-      <input className="input" placeholder="שם הארוחה" value={name} onChange={e=>setName(e.target.value)} />
       <div className="grid2">
+        <select className="input" value={slot} onChange={e=>setSlot(e.target.value)}>
+          {OPTIONS.map(o=> <option key={o} value={o}>{o}</option>)}
+        </select>
         <input className="input" placeholder="קלוריות" inputMode="numeric" value={cal} onChange={e=>setCal(e.target.value)} />
-        <input className="input" placeholder="חלבון (גרם)" inputMode="numeric" value={pro} onChange={e=>setPro(e.target.value)} />
       </div>
-      <button className="btn" onClick={add}>הוסף ארוחה</button>
+      <div className="grid2">
+        <input className="input" placeholder="חלבון (גרם)" inputMode="numeric" value={pro} onChange={e=>setPro(e.target.value)} />
+        <button className="btn" onClick={add}>הוסף ארוחה</button>
+      </div>
 
       <div style={{display:'grid',gap:8}}>
         {meals.length===0 && <div className="muted" style={{textAlign:'center'}}>אין ארוחות ביום זה</div>}
