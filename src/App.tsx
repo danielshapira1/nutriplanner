@@ -6,9 +6,11 @@ import type {
   DayKey,
   MealType,
   TabKey,
+  WeeklyPlan,
 } from './types';
+
 import { toDateISO, sundayOfWeek } from './lib/dates';
-import { loadState, saveState } from './lib/persist';
+import { loadState, saveState, getDailyQuote } from './lib/persist';
 import { getOrCreatePlan, setPlanText } from './lib/planner';
 
 import Header from './components/Header';
@@ -22,7 +24,7 @@ import DayMeals from './components/DayMeals';
 import Bubble from './components/Bubble';
 import MonthPicker from './components/MonthPicker';
 
-// תרגום ימי השבוע וסוגי הארוחות לכותרת הבועה
+// ---- תוויות עברית לימי השבוע ולסוגי ארוחה (לכותרות בבועה) ----
 const dayHeb: Record<DayKey, string> = {
   sun: 'א׳',
   mon: 'ב׳',
@@ -42,6 +44,7 @@ const slotHeb: Record<MealType, string> = {
 
 type BubbleState = { d: DayKey; slot: MealType; text: string } | null;
 
+// ---- עזרי חישוב ----
 function getTotalsForDate(state: PersistShape, dateISO: string) {
   const list = state.meals.filter((m) => m.dateISO === dateISO);
   const calories = list.reduce((s, m) => s + (Number(m.calories) || 0), 0);
@@ -57,43 +60,38 @@ function fmtRange(weekStartISO: string) {
   return `${f(start)}-${f(end)}`;
 }
 
+// ======================================================================
+
 export default function App(): JSX.Element {
+  // טעינת מצב מהתקן מקומי
   const [state, setState] = useState<PersistShape>(() => loadState());
-
-  // שמירת נתונים רק לחצי שנה אחורה (ארוחות/שקילות/פלנרים)
-  useEffect(() => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 183); // ~ חצי שנה
-    const cutISO = toDateISO(cutoff);
-    setState((prev) => ({
-      ...prev,
-      meals: prev.meals.filter((m) => m.dateISO >= cutISO),
-      weights: prev.weights.filter((w) => w.dateISO >= cutISO),
-      plans: prev.plans.filter(
-        (p) => p.weekStartISO >= toDateISO(sundayOfWeek(cutoff))
-      ),
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => saveState(state), [state]);
 
+  // טאבים וניהול תאריכים
   const [tab, setTab] = useState<TabKey>('home');
   const [dateISO, setDateISO] = useState<string>(toDateISO(new Date()));
   const weekStartISO = toDateISO(sundayOfWeek(new Date(dateISO)));
+
+  // דפדוף צד (רשימת קניות)
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // בועה לעריכת תא בפלנר
+  const [bubble, setBubble] = useState<BubbleState>(null);
+
+  // היסטוריה – פתיחת שבוע מסוים
+  const [editingWeek, setEditingWeek] = useState<string | null>(null);
+
+  // שחזור תכנון משבוע היסטורי
   const [restore, setRestore] = useState<{ open: boolean; from?: string }>({
     open: false,
   });
-  const [bubble, setBubble] = useState<BubbleState>(null);
-  const [editingWeek, setEditingWeek] = useState<string | null>(null);
 
-  // יעדים: ברירת מחדל '__default__' אם אין יעד יומי ספציפי
-  const targets =
+  // יעדים יומיים: אם אין ליום הזה, ננסה ברירת־מחדל __default__
+  const targets: Targets =
     state.targetsByDate[dateISO] ||
     state.targetsByDate['__default__'] || { calories: 0, protein: 0 };
 
+  // ארוחות של יום נוכחי + סכומים
   const dayMeals = useMemo(
     () => state.meals.filter((m) => m.dateISO === dateISO),
     [state.meals, dateISO]
@@ -102,12 +100,18 @@ export default function App(): JSX.Element {
     () => getTotalsForDate(state, dateISO),
     [state, dateISO]
   );
-  const plan = useMemo(
+
+  // פלנר של השבוע הנוכחי
+  const plan: WeeklyPlan = useMemo(
     () => getOrCreatePlan(state, weekStartISO),
     [state, weekStartISO]
   );
 
-  // יעד יומי: שמירה כיעד ברירת־מחדל + יעד לתאריך הנוכחי
+  // כרטיס השראה יומי — תמיד לפי תאריך היום האמיתי (לא לפי הדפדוף)
+  const todayISOReal = toDateISO(new Date());
+  const dailyQuote = getDailyQuote(todayISOReal);
+
+  // === פעולות שמירה/עדכון ===
   const saveTargets = (t: Targets) =>
     setState((prev) => ({
       ...prev,
@@ -118,16 +122,15 @@ export default function App(): JSX.Element {
       },
     }));
 
-  // ארוחות יומיות
   const addMeal = (m: MealEntry) =>
     setState((prev) => ({ ...prev, meals: [m, ...prev.meals] }));
+
   const delMeal = (id: string) =>
     setState((prev) => ({
       ...prev,
       meals: prev.meals.filter((x) => x.id !== id),
     }));
 
-  // פלנר שבועי: שינוי תא דרך הבועה
   const onPlanChange = (d: DayKey, slot: MealType, text: string) =>
     setState((prev) => {
       const next = structuredClone(prev);
@@ -135,18 +138,17 @@ export default function App(): JSX.Element {
       return next;
     });
 
-  // פתיחת בועה בלחיצה על תא בפלנר
+  // בועה מהפלנר
   const onCellClick = (d: DayKey, slot: MealType, text: string) =>
     setBubble({ d, slot, text });
 
-  // שמירת טקסט מהבועה
   const saveBubble = (text: string) => {
     if (!bubble) return;
     onPlanChange(bubble.d, bubble.slot, text);
     setBubble(null);
   };
 
-  // היסטוריה: רק שבועות לפני השבוע הנוכחי
+  // היסטוריה (רק שבועות לפני השבוע הנוכחי)
   const historyWeeks = [...state.plans]
     .filter((p) => p.weekStartISO < weekStartISO)
     .sort((a, b) => (a.weekStartISO < b.weekStartISO ? 1 : -1));
@@ -154,6 +156,7 @@ export default function App(): JSX.Element {
   // שחזור שבוע היסטורי לתוך השבוע הנוכחי
   const askRestore = (fromWeek: string) =>
     setRestore({ open: true, from: fromWeek });
+
   const doRestore = () => {
     if (!restore.from) return;
     const src = state.plans.find((p) => p.weekStartISO === restore.from);
@@ -164,22 +167,32 @@ export default function App(): JSX.Element {
     setState((prev) => {
       const next = structuredClone(prev);
       const cur = getOrCreatePlan(next, weekStartISO);
-      // deep copy
-      cur.days = JSON.parse(JSON.stringify(src.days));
+      cur.days = JSON.parse(JSON.stringify(src.days)); // deep clone
       return next;
     });
     setRestore({ open: false });
   };
+
+  // ====================================================================
 
   return (
     <div>
       <Header onOpenSheet={() => setSheetOpen(true)} />
 
       <div className="content">
-        {/* בית: יעדים + יומן יומי + לוח חודש */}
+        {/* ---------------------- בית ---------------------- */}
         {tab === 'home' && (
           <div className="card" style={{ display: 'grid', gap: 10 }}>
+            {/* כרטיס השראה יומי */}
+            <div className="card" style={{ background: '#fff7ed' }}>
+              <div style={{ fontWeight: 800, marginBottom: 6 }}>השראה יומית</div>
+              <div>{dailyQuote}</div>
+            </div>
+
+            {/* יעדים יומיים */}
             <TargetEditor initial={targets} totals={totals} onSave={saveTargets} />
+
+            {/* ארוחות יומיות */}
             <DayMeals
               dateISO={dateISO}
               meals={dayMeals}
@@ -189,6 +202,8 @@ export default function App(): JSX.Element {
               onAdd={addMeal}
               onDelete={delMeal}
             />
+
+            {/* בוחר תאריך מהיר */}
             <div className="card">
               <div style={{ fontWeight: 800, marginBottom: 6 }}>בחירת יום</div>
               <MonthPicker value={dateISO} onChange={setDateISO} />
@@ -196,14 +211,16 @@ export default function App(): JSX.Element {
           </div>
         )}
 
-        {/* תכנון ארוחות (לוח שבועי) + היסטוריה */}
+        {/* ------------------- תכנון ארוחות ------------------- */}
         {tab === 'calendar' && (
           <>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>
               תכנון ארוחות – שבוע שמתחיל ב-{weekStartISO}
             </div>
+
             <PlannerGrid plan={plan} onCellClick={onCellClick} />
 
+            {/* היסטוריית תכנון ארוחות */}
             <div className="card" style={{ marginTop: 8 }}>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>
                 היסטוריית תכנון ארוחות
@@ -234,7 +251,10 @@ export default function App(): JSX.Element {
                       >
                         {editingWeek === p.weekStartISO ? 'סגור' : 'פתח'}
                       </button>
-                      <button className="btn" onClick={() => askRestore(p.weekStartISO)}>
+                      <button
+                        className="btn"
+                        onClick={() => askRestore(p.weekStartISO)}
+                      >
                         שחזר
                       </button>
                     </div>
@@ -248,7 +268,8 @@ export default function App(): JSX.Element {
                     צפייה/עריכה: {fmtRange(editingWeek)}
                   </div>
                   <PlannerGrid
-                    plan={state.plans.find((w) => w.weekStartISO === editingWeek)!}
+                    plan={
+                      state.plans.find((w) => w.weekStartISO === editingWeek)!}
                     onCellClick={(d, s, text) => setBubble({ d, slot: s, text })}
                   />
                 </div>
@@ -257,6 +278,7 @@ export default function App(): JSX.Element {
           </>
         )}
 
+        {/* ---------------------- משקל ---------------------- */}
         {tab === 'weight' && (
           <WeightLog
             weights={state.weights}
@@ -299,9 +321,11 @@ export default function App(): JSX.Element {
             הוסף פריט
           </button>
         </div>
+
         {state.shopping.length === 0 && (
           <div className="muted">התחל להוסיף פריטים…</div>
         )}
+
         <div style={{ display: 'grid', gap: 8 }}>
           {state.shopping.map((item) => (
             <div
@@ -326,9 +350,12 @@ export default function App(): JSX.Element {
                   color: item.done ? '#fff' : '#111',
                   cursor: 'pointer',
                 }}
+                aria-label={item.done ? 'סמן כלא בוצע' : 'סמן כבוצע'}
+                title={item.done ? 'בטל סימון' : 'סמן בוצע'}
               >
                 {item.done ? '✓' : ''}
               </button>
+
               <input
                 className="input"
                 style={{ borderRadius: 0, borderLeft: 0, borderRight: 0 }}
@@ -343,6 +370,7 @@ export default function App(): JSX.Element {
                   }))
                 }
               />
+
               <button
                 className="btn-danger"
                 onClick={() =>
@@ -359,7 +387,7 @@ export default function App(): JSX.Element {
         </div>
       </SideSheet>
 
-      {/* אישור שחזור היסטוריה */}
+      {/* אישור שחזור */}
       <ConfirmModal
         open={restore.open}
         title="אישור שחזור"
@@ -370,7 +398,7 @@ export default function App(): JSX.Element {
         onNo={() => setRestore({ open: false })}
       />
 
-      {/* בועה: שמתי key ייחודי לפי התא כדי לאפס מצב בכל מעבר תא */}
+      {/* בועת עריכת תא בפלנר */}
       <Bubble
         key={bubble ? `${bubble.d}-${bubble.slot}` : 'empty'}
         open={!!bubble}

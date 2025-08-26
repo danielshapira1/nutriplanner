@@ -1,4 +1,5 @@
 import type { PersistShape } from '../types';
+import QUOTES from './quotes';
 
 
 const KEY = 'NUTRIPLANNER/V2/STATE';
@@ -103,4 +104,64 @@ export function searchMealTemplates(prefix: string, limit = 10): MealTemplate[] 
     return (b.uses || 0) - (a.uses || 0);
   });
   return filtered.slice(0, Math.max(1, limit));
+}
+
+type QuotesState = {
+  order: number[];      // shuffled indices of QUOTES
+  idx: number;          // current index in order
+  lastDateISO: string;  // last date we showed a quote (YYYY-MM-DD)
+};
+
+const QUOTES_KEY = 'nutri_quotes_v1';
+
+function lsRead<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+function lsWrite<T>(key: string, val: T) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+function shuffledIndices(n: number): number[] {
+  const arr = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/** החזרת ציטוט של היום: לא חוזר על עצמו עד שכל הרשימה מוצגת; אז נערבב מחדש. */
+export function getDailyQuote(todayISO: string): string {
+  let st = lsRead<QuotesState>(QUOTES_KEY, {
+    order: [],
+    idx: -1,
+    lastDateISO: '',
+  });
+
+  if (!st.order || st.order.length !== QUOTES.length) {
+    st.order = shuffledIndices(QUOTES.length);
+    st.idx = -1;
+    st.lastDateISO = '';
+  }
+
+  if (st.lastDateISO !== todayISO) {
+    // יום חדש → להתקדם
+    if (st.idx + 1 >= QUOTES.length) {
+      st.order = shuffledIndices(QUOTES.length); // סיבוב חדש
+      st.idx = 0;
+    } else {
+      st.idx += 1;
+    }
+    st.lastDateISO = todayISO;
+    lsWrite(QUOTES_KEY, st);
+  }
+
+  const safeIdx = Math.max(0, Math.min(st.idx, QUOTES.length - 1));
+  return QUOTES[st.order[safeIdx]];
 }
