@@ -21,7 +21,7 @@ export default function TargetEditor({
   };
 
   return (
-    <div className="card" style={{ display: 'grid', gap: 8 }}>
+    <div className="card" style={{ display: 'grid', gap: 12 }}>
       <div style={{ fontWeight: 800 }}>יעדים יומיים</div>
 
       <div className="grid2">
@@ -49,15 +49,38 @@ export default function TargetEditor({
         </label>
       </div>
 
-      <div>
-        <strong>
-          סה״כ קלוריות {totals.calories} מתוך יעד {values.calories}
-        </strong>
-      </div>
-      <div>
-        <strong>
-          סה״כ חלבון {totals.protein} מתוך יעד {values.protein}
-        </strong>
+      {/* קוביות מודגשות עם סיכומי היום */}
+      <div
+        style={{
+          display: 'grid',
+          gap: 8,
+          gridTemplateColumns: '1fr 1fr',
+        }}
+      >
+        <div
+          style={{
+            background: '#fef3c7',
+            border: '2px solid rgba(245, 158, 11, 0.5)', // כתום 50% אטימות
+            borderRadius: 12,
+            padding: '12px 8px',
+            textAlign: 'center',
+            fontWeight: 700,
+          }}
+        >
+          סה״כ קלוריות {totals.calories} <br /> מתוך יעד {values.calories}
+        </div>
+        <div
+          style={{
+            background: '#d1fae5',
+            border: '2px solid rgba(16, 185, 129, 0.5)', // ירוק 50% אטימות
+            borderRadius: 12,
+            padding: '12px 8px',
+            textAlign: 'center',
+            fontWeight: 700,
+          }}
+        >
+          סה״כ חלבון {totals.protein} <br /> מתוך יעד {values.protein}
+        </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
